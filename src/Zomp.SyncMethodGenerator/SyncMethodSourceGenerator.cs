@@ -126,7 +126,7 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                if (attributeData.NamedArguments[0].Value.Value is int value)
+                if (attributeData.NamedArguments.Length >= 1 && attributeData.NamedArguments[0].Value.Value is int value)
                 {
                     variations = value;
                 }
@@ -232,21 +232,73 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
         if (!hasErrors)
         {
             while (node is not null && node is not CompilationUnitSyntax)
+            var collections = new List<string>();
+
+            if (((CollectionTypes)variations & CollectionTypes.IList) == CollectionTypes.IList)
             {
-                switch (node)
+                collections.Add("System.Collections.Generic.IList");
+            }
+
+            if (((CollectionTypes)variations & CollectionTypes.Span) == CollectionTypes.IList)
+            {
+                collections.Add("System.Span");
+            }
+
+            if (((CollectionTypes)variations & CollectionTypes.ReadOnlySpan) == CollectionTypes.IList)
+            {
+                collections.Add("System.ReadOnlySpan");
+            }
+
+            if (((CollectionTypes)variations & CollectionTypes.IEnumerable) == CollectionTypes.IList)
+            {
+                collections.Add("System.Collections.Generic.IEnumerable");
+            }
+
+            foreach (var collection in collections)
+            {
+                var replacementOverrides = new Dictionary<string, string?>
                 {
-                    case NamespaceDeclarationSyntax nds:
-                        namespaces.Insert(0, nds.Name.ToString());
-                        break;
-                    case FileScopedNamespaceDeclarationSyntax file:
-                        namespaces.Add(file.Name.ToString());
-                        isNamespaceFileScoped = true;
-                        break;
-                    default:
-                        throw new InvalidOperationException($"Cannot handle {node}");
+                    { "System.Collections.Generic.IAsyncEnumerable", collection },
+                };
+                var rewriter = new AsyncToSyncRewriter(semanticModel, replacementOverrides);
+                var sn = rewriter.Visit(methodDeclarationSyntax);
+                var content = sn.ToFullString();
+
+                var diagnostics = rewriter.Diagnostics;
+
+                var hasErrors = false;
+                foreach (var diagnostic in diagnostics)
+                {
+                    context.ReportDiagnostic(diagnostic);
+                    hasErrors |= diagnostic.Severity == DiagnosticSeverity.Error;
                 }
 
-                node = node.Parent;
+                if (hasErrors)
+                {
+                    continue;
+                }
+
+                var isNamespaceFileScoped = false;
+                var namespaces = new List<string>();
+                while (node is not null && node is not CompilationUnitSyntax)
+                {
+                    switch (node)
+                    {
+                        case NamespaceDeclarationSyntax nds:
+                            namespaces.Insert(0, nds.Name.ToString());
+                            break;
+                        case FileScopedNamespaceDeclarationSyntax file:
+                            namespaces.Add(file.Name.ToString());
+                            isNamespaceFileScoped = true;
+                            break;
+                        default:
+                            throw new InvalidOperationException($"Cannot handle {node}");
+                    }
+
+                    node = node.Parent;
+                }
+
+                methodsToGenerate.Add(new(namespaces, isNamespaceFileScoped, classes, methodDeclarationSyntax.Identifier.ValueText, content));
             }
         }
 
