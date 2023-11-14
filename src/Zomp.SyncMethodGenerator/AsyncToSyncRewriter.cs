@@ -33,7 +33,7 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
     private static readonly HashSet<string> InterfacesToDrop = [IProgressInterface, IAsyncResultInterface];
     private static readonly Dictionary<string, string?> Replacements = new()
     {
-        { "System.Collections.Generic.IAsyncEnumerable",  "System.Collections.Generic.IEnumerable" },
+        { "System.Collections.Generic.IAsyncEnumerable", "System.Collections.Generic.IEnumerable" },
         { "System.Collections.Generic.IAsyncEnumerator", "System.Collections.Generic.IEnumerator" },
         { TaskType, null },
         { ValueTaskType, null },

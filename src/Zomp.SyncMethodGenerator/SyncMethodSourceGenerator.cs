@@ -107,6 +107,34 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
             foreach (var member in containingType.GetMembers())
             {
                 if (member.Equals(methodSymbol, SymbolEqualityComparer.Default))
+                // something went wrong
+                continue;
+            }
+
+            if (!methodSymbol.IsAsync && !AsyncToSyncRewriter.IsTypeOfInterest(methodSymbol.ReturnType))
+            {
+                continue;
+            }
+
+            var methodName = methodSymbol.ToString();
+
+            foreach (AttributeData attributeData in methodSymbol.GetAttributes())
+            {
+                if (!attribute.Equals(attributeData.AttributeClass, SymbolEqualityComparer.Default))
+                {
+                    continue;
+                }
+
+                var variations = attributeData.NamedArguments[0].Value.Value;
+                break;
+            }
+
+            var classes = new List<ClassDeclaration>();
+            SyntaxNode? node = methodDeclarationSyntax;
+            while (node.Parent is not null)
+            {
+                node = node.Parent;
+                if (node is not ClassDeclarationSyntax classSyntax)
                 {
                     break;
                 }
