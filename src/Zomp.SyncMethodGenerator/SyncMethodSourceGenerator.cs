@@ -79,6 +79,8 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
 
     private static MethodToGenerate? GetMethodToGenerate(GeneratorAttributeSyntaxContext context, MethodDeclarationSyntax methodDeclarationSyntax, bool disableNullable, CancellationToken ct)
     {
+        var methodsToGenerate = new List<MethodToGenerate>();
+        var replacementOverrides = new Dictionary<string, string?>();
         // stop if we're asked to
         ct.ThrowIfCancellationRequested();
 
@@ -89,6 +91,8 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
         }
 
         INamedTypeSymbol? attribute = context.SemanticModel.Compilation.GetTypeByMetadataName(QualifiedCreateSyncVersionAttribute);
+
+
         if (attribute == null)
         {
             // nothing to do if this type isn't available
@@ -167,6 +171,10 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
 
             classes.Insert(0, new(classSyntax.Identifier.ValueText, modifiers.ToImmutable(), typeParameters.ToImmutable()));
         }
+            //fill out replacement overrides dictionary
+            var rewriter = new AsyncToSyncRewriter(semanticModel, replacementOverrides);
+            var sn = rewriter.Visit(methodDeclarationSyntax);
+            var content = sn.ToFullString();
 
         if (classes.Count == 0)
         {

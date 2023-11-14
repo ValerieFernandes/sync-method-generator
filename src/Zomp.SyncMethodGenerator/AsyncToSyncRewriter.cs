@@ -9,7 +9,8 @@ namespace Zomp.SyncMethodGenerator;
 /// Creates a new instance of <see cref="AsyncToSyncRewriter"/>.
 /// </remarks>
 /// <param name="semanticModel">The semantic model.</param>
-internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel) : CSharpSyntaxRewriter
+/// <param name="replacementOverrides">The type of collection that should be used to replace IAsyncEnumerable.</param>
+internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionary<string, string?> replacementOverrides) : CSharpSyntaxRewriter
 {
     public const string SyncOnly = "SYNC_ONLY";
     private const string SystemObject = "object";
@@ -32,8 +33,8 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel) : CSharpS
     private static readonly HashSet<string> InterfacesToDrop = [IProgressInterface, IAsyncResultInterface];
     private static readonly Dictionary<string, string?> Replacements = new()
     {
-        { "System.Collections.Generic.IAsyncEnumerable", "System.Collections.Generic.IEnumerable" },
-        { IAsyncEnumerator, "System.Collections.Generic.IEnumerator" },
+        { "System.Collections.Generic.IAsyncEnumerable",  "System.Collections.Generic.IEnumerable" },
+        { "System.Collections.Generic.IAsyncEnumerator", "System.Collections.Generic.IEnumerator" },
         { TaskType, null },
         { ValueTaskType, null },
         { ReadOnlyMemory, "System.ReadOnlySpan" },
@@ -229,7 +230,9 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel) : CSharpS
         var genericName = GetNameWithoutTypeParams(symbol);
 
         string? newType = null;
-        if (Replacements.TryGetValue(genericName, out var replacement))
+
+        if (replacementOverrides.TryGetValue(genericName, out var replacement) ||
+            Replacements.TryGetValue(genericName, out replacement))
         {
             if (replacement is not null)
             {
