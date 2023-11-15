@@ -126,9 +126,9 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                if (attributeData.NamedArguments.Length >= 1 && attributeData.NamedArguments[0].Value.Value is CollectionTypes value)
+                if (attributeData.NamedArguments.Length >= 1 && attributeData.NamedArguments[0].Value.Value is int value)
                 {
-                    variations = value;
+                    variations = (CollectionTypes)value;
                 }
 
                 break;
