@@ -68,6 +68,7 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
     private readonly HashSet<IParameterSymbol> removedParameters = [];
     private readonly Dictionary<string, string> renamedLocalFunctions = [];
     private readonly ImmutableArray<ReportedDiagnostic>.Builder diagnostics = ImmutableArray.CreateBuilder<ReportedDiagnostic>();
+    private Dictionary<string, string> parametersWithTypes = [];
 
     private enum SyncOnlyDirectiveType
     {
@@ -231,17 +232,25 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
 
         string? newType = null;
 
+        //if (@base.Att)
+        // {
+        // }
         if (replacementOverrides.TryGetValue(genericName, out var replacement) ||
             Replacements.TryGetValue(genericName, out replacement))
         {
             if (replacement is not null)
             {
-                newType = Global(replacement);
+                newType = "global::" + replacement;
             }
         }
         else
         {
             newType = symbol.ToDisplayString(GlobalDisplayFormat);
+        }
+
+        if (node.Parent is ParameterSyntax ps && genericName is ReadOnlyMemory or Memory)
+        {
+            memoryToSpan.Add(ps.Identifier.ValueText);
         }
 
         if (newType is not null)
@@ -931,6 +940,7 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
         }
 
         var @base = (AttributeListSyntax)base.VisitAttributeList(node)!;
+        node.Attributes.ToList().ForEach(a => AddParameterTypes(a));
         var indices = node.Attributes.GetIndices(ShouldRemoveAttribute);
         var newList = RemoveAtRange(@base.Attributes, indices);
         return @base.WithAttributes(newList);
@@ -938,6 +948,7 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
 
     public override SyntaxNode? VisitAttribute(AttributeSyntax node)
     {
+        parametersWithTypes.ContainsKey("k");
         var @base = (AttributeSyntax)base.VisitAttribute(node)!;
 
         if (GetSymbol(node.Name) is not IMethodSymbol ms)
@@ -1281,6 +1292,16 @@ internal sealed class AsyncToSyncRewriter(SemanticModel semanticModel, Dictionar
         var replacement = Regex.Replace(methodSymbol.Name, "Memory", "Span");
         var newSymbol = containingType.GetMembers().FirstOrDefault(z => z.Name == replacement);
         return replacement;
+    private void AddParameterTypes(AttributeSyntax attributeSyntax)
+    {
+        if (GetSymbol(attributeSyntax) is IMethodSymbol attributeSymbol)
+        {
+            var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
+            if (IsReplaceWithAttribute(attributeContainingTypeSymbol) && attributeSyntax.Parent?.Parent is ParameterSyntax param)
+            {
+                parametersWithTypes.Add(param.Identifier.ValueText, param.Identifier.Text);
+            }
+        }
     }
 
     private bool PreProcess(
