@@ -10,6 +10,11 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
     /// Create sync version attribute string.
     /// </summary>
     public const string CreateSyncVersionAttribute = "CreateSyncVersionAttribute";
+
+    /// <summary>
+    /// Replace with attribute string.
+    /// </summary>
+    public const string ReplaceWithAttribute = "ReplaceWithAttribute";
     internal const string QualifiedCreateSyncVersionAttribute = $"{ThisAssembly.RootNamespace}.{CreateSyncVersionAttribute}";
 
     internal const string OmitNullableDirective = "OmitNullableDirective";
@@ -29,11 +34,10 @@ public class SyncMethodSourceGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
             $"{CreateSyncVersionAttribute}.g.cs", SourceText.From(SourceGenerationHelper.CreateSyncVersionAttributeSource, Encoding.UTF8)));
 
-        var disableNullable =
-            context.CompilationProvider.Select((c, _)
-                => c is CSharpCompilation { LanguageVersion: < LanguageVersion.CSharp8 });
+        context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
+            $"{ReplaceWithAttribute}.g.cs", SourceText.From(SourceGenerationHelper.ReplaceWithAttributeSource, Encoding.UTF8)));
 
-        var methodDeclarations = context.SyntaxProvider
+        IncrementalValuesProvider<MethodDeclarationSyntax> methodDeclarations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 QualifiedCreateSyncVersionAttribute,
                 predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
