@@ -27,6 +27,12 @@
     <!-- Package the Microsoft.Bcl.HashCode alongside the generator assembly -->
     <None Include="$(PkgMicrosoft_Bcl_HashCode)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Zomp.SyncMethodGenerator\CollectionTypes.cs" Link="CollectionTypes.cs">
+      <LogicalName>Zomp.SyncMethodGenerator.tests.CollectionTypes.cs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 
   <!-- https://stackoverflow.com/a/59893520/6461844 -->
   <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">

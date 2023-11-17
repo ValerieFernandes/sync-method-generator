@@ -133,7 +133,7 @@ partial class Class
         var target = new RunResultWithIgnoreList
         {
             Result = driver.GetRunResult(),
-            IgnoredFiles = { $"{SyncMethodSourceGenerator.CreateSyncVersionAttribute}.g.cs", $"{SyncMethodSourceGenerator.ReplaceWithAttribute}.g.cs" },
+            IgnoredFiles = { $"{SyncMethodSourceGenerator.CreateSyncVersionAttribute}.g.cs", $"{SyncMethodSourceGenerator.ReplaceWithAttribute}.g.cs", $"CollectionTypes.g.cs" },
         };
 
         var verifier = Verifier
