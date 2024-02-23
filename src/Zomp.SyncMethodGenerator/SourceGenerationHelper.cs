@@ -5,7 +5,6 @@
 /// </summary>
 public static class SourceGenerationHelper
 {
-    internal const string CreateSyncVersionAttributeSource = $$"""
     internal const string CreateCollectionEnumSource = """
         [Flags]
         public enum CollectionTypes
